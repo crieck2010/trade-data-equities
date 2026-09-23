@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trade-data-equities"
+version = "0.1.0"
+description = "US stock and ETF market-data engine: pluggable providers, caching, corporate-action adjustments"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "crieck2010" }]
+keywords = ["trading", "market-data", "equities", "etf", "backtesting"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Topic :: Office/Business :: Financial",
+]
+
+[project.urls]
+Homepage = "https://github.com/crieck2010/trade-data-equities"
+
+[project.optional-dependencies]
+yfinance = ["yfinance>=0.2.40", "pandas>=2.0"]
+pandas = ["pandas>=2.0"]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
