@@ -209,6 +209,16 @@ Sibling repositories in this trading system:
 - `trade-dashboard-web` / `trade-dashboard-desktop` — dashboards
 - `trade-suite` — meta-package tying it all together
 
+## The maths
+
+**What you learn.** A data engine's maths is its measurement discipline: how raw vendor candles become one clean, split/dividend-adjusted, tz-aware bar series that every backtest and screener in the suite can trust. The two computations that matter here are corporate-action adjustment and windowed series assembly.
+
+**Why it matters.** An unadjusted 4:1 split looks like a −75% crash; an unadjusted dividend looks like a gap down. Any return, volatility, or drawdown statistic computed on raw prices is wrong at every corporate-action boundary. This engine stores the vendor's raw series and applies adjustments on read, so raw and adjusted views coexist without duplicate storage — and fixing adjustment logic never invalidates the cache.
+
+**The maths.** Splits apply first: every bar with `date < ex_date` gets `OHLC ÷ ratio` and `volume × ratio`; multiple splits compound multiplicatively (a 2:1 then a 3:1 is a 6:1 cumulative factor). Dividends apply second, off the split-adjusted series: `factor = (prev_close − amount) / prev_close` computed from the close before the ex-date, multiplied backward through all earlier bars; volumes are never dividend-adjusted. Series assembly: bounds are normalized to tz-aware UTC `[start, end)` (a bar's timestamp marks the *open* of its interval), the range is split into provider-sized windows (e.g. 7-day pages for 1-minute bars), each window is served from the JSON disk cache or the network, then merged, sorted, and deduped by timestamp. Universes are immutable, deduplicated ticker sets, so a scan over "tech" is reproducible by name. TTLs are per timeframe (15 min intraday, 12 h daily); `stream_bars` resolves corporate actions once up front so chunked decade-long histories stay correctly adjusted in constant memory.
+
+**Honest limitations.** Adjustment factors derive from the vendor's reported splits/dividends — bad corporate-action metadata in means bad adjusted prices out. Dividend adjustment uses the classic backward-ratio method, not total-return reinvestment accounting. yfinance data is delayed ~15 minutes and its corporate-action history can lag. Naive datetimes are assumed UTC, which silently mislabels exchange-local timestamps if you pass them. The engine does no survivorship-bias correction: delisted symbols simply stop appearing.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
