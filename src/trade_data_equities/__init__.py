@@ -23,10 +23,15 @@ from .models import (
     Timeframe,
     ensure_utc,
 )
-from .providers import MarketDataProvider, YFinanceProvider
+from .providers import (
+    MarketDataProvider,
+    MockPolygonHTTP,
+    PolygonProvider,
+    YFinanceProvider,
+)
 from .universe import Universe
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "Bar",
@@ -35,6 +40,8 @@ __all__ = [
     "EquitiesDataClient",
     "InstrumentKind",
     "MarketDataProvider",
+    "MockPolygonHTTP",
+    "PolygonProvider",
     "ProviderError",
     "Quote",
     "RateLimitError",

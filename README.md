@@ -5,7 +5,8 @@ algorithmic/agentic trading system: one focused repository per instrument type
 (equities, options, futures, crypto), each exposing the same provider/client
 pattern so strategies, backtests, and agents can mix instruments freely.
 
-Free delayed data today (yfinance, ~15 minutes), pluggable paid feeds tomorrow.
+Free delayed data today (yfinance, ~15 minutes); a Polygon/Massive provider
+ships in the box for paid tiers (free EOD → real-time intraday).
 Built for **research, backtesting, and paper trading** — not for live execution.
 
 ## Features
@@ -112,6 +113,27 @@ so changing adjustment logic never invalidates stored data.
 **Timestamps.** All timestamps are tz-aware UTC. A `Bar`'s timestamp marks the
 *open* of its interval. Naive datetimes passed as bounds are assumed UTC.
 
+## Polygon provider
+
+When free delayed data stops being enough — intraday backtests, deeper
+history, cleaner corporate actions — swap one line. No strategy, backtest,
+screener, or agent code changes, because everything programs against
+`MarketDataProvider`:
+
+```python
+from trade_data_equities import EquitiesDataClient
+from trade_data_equities.providers import PolygonProvider
+
+client = EquitiesDataClient(PolygonProvider())  # reads POLYGON_API_KEY
+bars = client.get_bars("AAPL", Timeframe.DAILY, date(2023, 1, 1), date(2024, 1, 1))
+```
+
+Setup: get a key at [massive.com](https://massive.com) (free tier available),
+then `export POLYGON_API_KEY=...`. The key is never logged, never appears in
+errors, and never leaves your machine except in the HTTPS request itself.
+Full details — tiers, timeframe mapping, pagination, rate limits, honest
+limitations — live in [docs/POLYGON.md](docs/POLYGON.md).
+
 ## Adding a provider
 
 Implement `MarketDataProvider` — four methods cover the whole contract:
@@ -119,8 +141,8 @@ Implement `MarketDataProvider` — four methods cover the whole contract:
 ```python
 from trade_data_equities import MarketDataProvider, Bar, Symbol, Timeframe
 
-class PolygonProvider(MarketDataProvider):
-    name = "polygon"          # used in cache keys
+class AcmeProvider(MarketDataProvider):
+    name = "acme"             # used in cache keys
     delay_minutes = 0         # real-time feed
 
     def get_bars(self, symbol, timeframe, start, end) -> list[Bar]:
@@ -180,6 +202,7 @@ engine work unchanged.
 | `client.to_dataframe(bars)` | static | pandas export |
 | `MarketDataProvider` | ABC | Interface for new feeds |
 | `YFinanceProvider(min_interval, max_retries)` | class | Free delayed feed |
+| `PolygonProvider(api_key, base_url, ...)` | class | Polygon/Massive REST aggregates (needs `POLYGON_API_KEY`) |
 | `DiskCache(root, ttl)` | class | JSON cache with TTLs |
 | `Universe.from_tickers / from_csv` | classmethods | Named symbol sets |
 | `adjust_bars(bars, splits, dividends)` | function | Pure adjustment |
@@ -191,8 +214,10 @@ pip install "trade-data-equities[dev]"
 pytest -q
 ```
 
-The suite runs entirely offline: providers are faked, and the yfinance frame
-mapper is tested against synthetic DataFrames. A live smoke test is in
+The suite runs entirely offline: providers are faked, the yfinance frame
+mapper is tested against synthetic DataFrames, and the Polygon provider is
+tested against `MockPolygonHTTP` (scripted paginated/429/empty responses —
+no key, no network). A live smoke test is in
 `examples/quickstart.py` (requires the `yfinance` extra and network access).
 
 ## Roadmap
